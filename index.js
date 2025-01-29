@@ -1,12 +1,10 @@
-// index.js
 const express = require('express');
 const cors = require('cors');
 const Replicate = require('replicate');
 const dotenv = require('dotenv');
-const fetch = require('node-fetch');
+
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const mongoose = require('mongoose');
-
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 
@@ -22,12 +20,10 @@ app.use(express.json());
 const replicate = new Replicate({
     auth: process.env.REPLICATE_API_TOKEN,
 });
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
-
 // Initialize S3 client
 const s3Client = new S3Client({
     region: process.env.AWS_REGION,
@@ -42,6 +38,7 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
 
+
 // Define a schema for gallery items
 const gallerySchema = new mongoose.Schema({
     prompt: { type: String, required: true },
@@ -52,22 +49,31 @@ const gallerySchema = new mongoose.Schema({
 // Create a model for gallery items
 const Gallery = mongoose.model('Gallery', gallerySchema);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
 
 // POST endpoint to generate images
 app.post('/api/generate', async (req, res) => {
     const { prompt } = req.body;
+    const modifiedPrompt = `${prompt} INTR`; // Add trigger word for the AI Model
 
     try {
+        // Call the Replicate API to generate the image
         const output = await replicate.run(
             "rihan-a/colourful_interiors:ba0425bc2e4bebafa8bd918519fdf3b5a022969a6a7c8ba0746b807bb5b541a3",
             {
                 input: {
                     aspect_ratio: "16:9",
-                    prompt,
+                    prompt: modifiedPrompt,
                     output_format: "jpg",
                 },
             }
         );
+
+        // Log the output for debugging
+        console.log('Replicate API output:', output);
 
         // Ensure the output contains a valid image URL
         if (!output || !output[0] || typeof output[0] !== 'string') {
@@ -106,16 +112,11 @@ app.post('/api/generate', async (req, res) => {
 
         // Send the S3 image URL back to the client
         res.json({ outputUrl: s3ImageUrl });
-
-
-
     } catch (error) {
         console.error('Error generating design:', error);
         res.status(500).json({ error: 'Failed to generate design', details: error.message });
     }
 });
-
-
 
 // GET endpoint to fetch all gallery items
 app.get('/api/gallery', async (req, res) => {
@@ -127,8 +128,6 @@ app.get('/api/gallery', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch gallery items', details: error.message });
     }
 });
-
-
 
 // Start the server
 const PORT = process.env.PORT || 3000;
