@@ -5,6 +5,7 @@ const Replicate = require('replicate');
 const dotenv = require('dotenv');
 const fetch = require('node-fetch');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const mongoose = require('mongoose');
 
 dotenv.config();
 
@@ -32,6 +33,12 @@ const s3Client = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     },
 });
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
 
 // POST endpoint to generate images
 app.post('/api/generate', async (req, res) => {
