@@ -7,6 +7,9 @@ const fetch = require('node-fetch');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const mongoose = require('mongoose');
 
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
+
 dotenv.config();
 
 const app = express();
@@ -112,14 +115,20 @@ app.post('/api/generate', async (req, res) => {
     }
 });
 
-// Helper function to convert stream to buffer
-async function streamToBuffer(stream) {
-    const chunks = [];
-    for await (const chunk of stream) {
-        chunks.push(chunk);
+
+
+// GET endpoint to fetch all gallery items
+app.get('/api/gallery', async (req, res) => {
+    try {
+        const galleryItems = await Gallery.find().sort({ createdAt: -1 }); // Sort by newest first
+        res.status(200).json(galleryItems);
+    } catch (error) {
+        console.error('Error fetching gallery items:', error);
+        res.status(500).json({ error: 'Failed to fetch gallery items', details: error.message });
     }
-    return Buffer.concat(chunks);
-}
+});
+
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;
