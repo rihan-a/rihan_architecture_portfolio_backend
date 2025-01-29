@@ -66,22 +66,25 @@ app.post('/api/generate', async (req, res) => {
             }
         );
 
-        // Here we assume the first item in output is the image URL or data
-        if (output && output[0]) {
-            if (typeof output[0] === 'string') {
-                // If the output is a URL, send it directly
-                res.json({ outputUrl: output[0] });
-            } else if (output[0] instanceof ReadableStream) {
-                // Convert the ReadableStream to a Buffer
-                const buffer = await streamToBuffer(output[0]);
-                const base64Image = buffer.toString('base64');
-                res.json({ outputUrl: `data:image/jpeg;base64,${base64Image}` });
-            } else {
-                throw new Error('Unexpected output format from Replicate API');
-            }
-        } else {
-            throw new Error('No output received from Replicate API');
+        // Ensure the output contains a valid image URL
+        if (!output || !output[0] || typeof output[0] !== 'string') {
+            throw new Error('Invalid output format from Replicate API');
         }
+
+        const imageUrl = output[0]; // The generated image URL
+
+        // Fetch the image from the URL
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+            throw new Error('Failed to fetch image from Replicate API');
+        }
+
+        // Convert the image to a buffer
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+
+
     } catch (error) {
         console.error('Error generating design:', error);
         res.status(500).json({ error: 'Failed to generate design', details: error.message });
