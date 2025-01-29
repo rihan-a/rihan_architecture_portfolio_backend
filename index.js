@@ -83,6 +83,27 @@ app.post('/api/generate', async (req, res) => {
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // Upload the image to S3
+        const s3Key = `genai-images/${Date.now()}_${prompt.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.jpg`; // Unique key for the image
+        const uploadParams = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Key: s3Key,
+            Body: buffer,
+            ContentType: 'image/jpeg',
+        };
+
+        await s3Client.send(new PutObjectCommand(uploadParams));
+
+        // Generate the S3 URL
+        const s3ImageUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+
+        // Save the prompt and S3 image URL to the gallery
+        const newGalleryItem = new Gallery({ prompt, imageUrl: s3ImageUrl });
+        await newGalleryItem.save();
+
+        // Send the S3 image URL back to the client
+        res.json({ outputUrl: s3ImageUrl });
+
 
 
     } catch (error) {
