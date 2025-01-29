@@ -39,6 +39,16 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
 
+// Define a schema for gallery items
+const gallerySchema = new mongoose.Schema({
+    prompt: { type: String, required: true },
+    imageUrl: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+});
+
+// Create a model for gallery items
+const Gallery = mongoose.model('Gallery', gallerySchema);
+
 
 // POST endpoint to generate images
 app.post('/api/generate', async (req, res) => {
