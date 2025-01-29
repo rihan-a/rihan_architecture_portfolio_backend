@@ -4,6 +4,7 @@ const cors = require('cors');
 const Replicate = require('replicate');
 const dotenv = require('dotenv');
 const fetch = require('node-fetch');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
 dotenv.config();
 
@@ -21,6 +22,15 @@ const replicate = new Replicate({
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
+});
+
+// Initialize S3 client
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
 });
 
 // POST endpoint to generate images
